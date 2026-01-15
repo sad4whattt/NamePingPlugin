@@ -8,6 +8,8 @@ import javax.annotation.Nonnull;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -22,10 +24,22 @@ public class NamePingChatListener {
         @Nonnull
         public Message format(@Nonnull PlayerRef playerRef, @Nonnull String message) {
             String senderName = playerRef.getUsername();
+            String senderUuid = playerRef.getUuid().toString();
+            
+            Set<String> onlineNames = new HashSet<>();
+            Universe.get().getPlayers().forEach(p -> {
+                if (p.isValid()) {
+                    onlineNames.add(p.getUsername().toLowerCase());
+                }
+            });
+
             Universe.get().getPlayers().forEach(recipient -> {
                 if (!recipient.isValid()) return;
+                
+                boolean isSender = recipient.getUuid().toString().equals(senderUuid);
                 String recipientName = recipient.getUsername();
-                Message content = buildContentForRecipient(message, recipientName);
+                
+                Message content = buildContentForRecipient(message, recipientName, isSender, onlineNames);
                 List<Message> parts = new ArrayList<>();
                 parts.add(Message.raw("<").color(Color.GRAY));
                 parts.add(Message.raw(senderName).color(Color.WHITE));
@@ -35,7 +49,8 @@ public class NamePingChatListener {
             });
             return Message.raw("");
         }
-        private static Message buildContentForRecipient(String message, String recipientName) {
+        
+        private static Message buildContentForRecipient(String message, String recipientName, boolean isSender, Set<String> onlineNames) {
             List<Message> segments = new ArrayList<>();
             Matcher m = MENTION_PATTERN.matcher(message);
             int last = 0;
@@ -44,8 +59,17 @@ public class NamePingChatListener {
                     segments.add(Message.raw(message.substring(last, m.start())).color(Color.WHITE));
                 }
                 String name = m.group(1);
-                boolean highlight = name.equalsIgnoreCase(recipientName);
-                segments.add(Message.raw("@" + name).color(highlight ? Color.GREEN : Color.WHITE));
+                
+                Color highlightColor = Color.WHITE;
+                
+                if (name.equalsIgnoreCase(recipientName)) {
+                    highlightColor = Color.GREEN;
+                }
+                else if (isSender && onlineNames.contains(name.toLowerCase())) {
+                    highlightColor = Color.BLUE;
+                }
+                
+                segments.add(Message.raw("@" + name).color(highlightColor));
                 last = m.end();
             }
             if (last < message.length()) {
