@@ -1,0 +1,8 @@
+{
+  "Group": "Snipr",
+  "Name": "NamePingPlugin",
+  "Version": "1.0.0",
+  "Main": "com.snipr.nameping.NamePingPlugin",
+  "Description": "Highlights @mentions in chat green for the mentioned player only",
+  "IncludesAssetPack": false
+}
